@@ -4,17 +4,21 @@
     {
       "name": "dev",
       "displayName": "Developer (Debug)",
+      "generator": "Ninja",
       "binaryDir": "${sourceDir}/build/dev",
       "cacheVariables": {
-        "CMAKE_BUILD_TYPE": "Debug"
+        "CMAKE_BUILD_TYPE": "Debug",
+        "CMAKE_CXX_COMPILER_LAUNCHER": "ccache"
       }
     },
     {
       "name": "sanitizer",
       "displayName": "Debug + ASan/UBSan",
+      "generator": "Ninja",
       "binaryDir": "${sourceDir}/build/sanitizer",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Debug",
+        "CMAKE_CXX_COMPILER_LAUNCHER": "ccache",
         "CMAKE_CXX_FLAGS": "-fsanitize=address,undefined -fno-omit-frame-pointer",
         "CMAKE_EXE_LINKER_FLAGS": "-fsanitize=address,undefined"
       }
@@ -22,9 +26,11 @@
     {
       "name": "release",
       "displayName": "Release",
+      "generator": "Ninja",
       "binaryDir": "${sourceDir}/build/release",
       "cacheVariables": {
-        "CMAKE_BUILD_TYPE": "Release"
+        "CMAKE_BUILD_TYPE": "Release",
+        "CMAKE_CXX_COMPILER_LAUNCHER": "ccache"
       }
     }
   ],
