@@ -37,4 +37,5 @@ list(APPEND CMAKE_MODULE_PATH "${catch2_SOURCE_DIR}/extras")
 
 enable_testing()
 add_subdirectory(src/common)
+add_subdirectory(src/request)
 add_subdirectory(tests/unit)
