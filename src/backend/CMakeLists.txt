@@ -1,0 +1,18 @@
+add_library(tokamak_backend
+  error.cpp
+  mock_backend.cpp
+)
+
+target_include_directories(tokamak_backend
+  PUBLIC
+    ${CMAKE_SOURCE_DIR}/include
+)
+
+target_link_libraries(tokamak_backend
+  PUBLIC
+    tokamak_common
+  PRIVATE
+    tokamak_warnings
+)
+
+target_compile_features(tokamak_backend PUBLIC cxx_std_23)
