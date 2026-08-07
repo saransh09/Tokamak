@@ -28,9 +28,9 @@ TEST_CASE("FakeClock advances forward correctly", "[clock]") {
 }
 
 TEST_CASE("Clock interface allows polymorphic use", "[clock]") {
-    tokamak::FakeClock fake;
-    tokamak::Clock& clock_ref = fake;
+  tokamak::FakeClock fake;
+  tokamak::Clock &clock_ref = fake;
 
-    fake.advance(10ms);
-    REQUIRE(clock_ref.now() == tokamak::TimePoint{10ms});
+  fake.advance(10ms);
+  REQUIRE(clock_ref.now() == tokamak::TimePoint{10ms});
 }

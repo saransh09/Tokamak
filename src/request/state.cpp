@@ -1,20 +1,8 @@
 #include "tokamak/request/state.h"
+#include "tokamak/common/panic.h"
 
-#include <cstdio>
-#include <cstdlib>
 
 namespace tokamak {
-namespace {
-// Always-on invariant check: deliberately NOT assert(), which is compiled
-// out under NDEBUG. An illgegal state transition indicates corrupted
-// scheduling logic
-// continuting would be unsafe in any build type
-[[noreturn]] void invariant_violation(std::string_view message) {
-  std::fprintf(stderr, "tokamak: invariant violation: %.*s\n",
-               static_cast<int>(message.size()), message.data());
-  std::abort();
-}
-} // namespace
 
 std::string_view to_string(RequestState state) {
   switch (state) {
@@ -39,7 +27,7 @@ std::string_view to_string(RequestState state) {
   case RequestState::kFailed:
     return "Failed";
   }
-  invariant_violation("unknown RequestState");
+  panic("unknown RequestState");
 }
 
 bool is_terminal(RequestState state) {
@@ -87,7 +75,7 @@ RequestLifecycle::RequestLifecycle(const Clock &clock)
 
 void RequestLifecycle::transition_to(RequestState to) {
   if (!is_valid_transition(state_, to)) {
-    invariant_violation("illegal request statet transition attempted");
+    panic("illegal request statet transition attempted");
   }
 
   state_ = to;
@@ -114,7 +102,7 @@ void RequestLifecycle::cancel() {
 
 void RequestLifecycle::record_first_token() {
   if (state_ != RequestState::kDecoding) {
-    invariant_violation("record_first_token() called outside Decoding state.");
+    panic("record_first_token() called outside Decoding state.");
     ;
   }
   if (!first_token_at_.has_value()) {

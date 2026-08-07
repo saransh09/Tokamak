@@ -1,5 +1,6 @@
 add_library(tokamak_request
   state.cpp
+  request.cpp
 )
 
 target_include_directories(tokamak_request

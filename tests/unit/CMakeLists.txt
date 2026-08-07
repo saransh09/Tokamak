@@ -2,6 +2,7 @@ add_executable(tokamak_unit_tests
     sanity_test.cpp
     clock_test.cpp
     request_state_test.cpp
+    request_test.cpp
 )
 
 target_link_libraries(tokamak_unit_tests

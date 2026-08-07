@@ -1,5 +1,6 @@
 add_library(tokamak_common
     clock.cpp
+    panic.cpp
 )
 
 target_include_directories(tokamak_common
