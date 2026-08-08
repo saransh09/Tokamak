@@ -1,8 +1,10 @@
 #pragma once
 
 #include "tokamak/backend/backend.h"
+#include "tokamak/backend/error.h"
 #include "tokamak/common/clock.h"
 #include <cstdint>
+#include <deque>
 #include <optional>
 #include <unordered_map>
 namespace tokamak {
@@ -25,6 +27,8 @@ public:
   DecodeResult decode(const DecodeBatch &batch) override;
   void release(SequenceHandle sequence) noexcept override;
   void configure_eos(SequenceHandle handle, std::uint32_t after_tokens);
+  void fail_next_prefill(BackendError error);
+  void fail_next_decode(BackendError error);
 
 private:
   FakeClock &clock_;
@@ -38,6 +42,14 @@ private:
   };
   std::uint64_t next_sequence_id_ = 0;
   std::unordered_map<std::uint64_t, SequenceState> sequences_;
+
+  // Test-only failure injection (opt-in, default empty -- zero behavior
+  // change unless called). Each queued error is consumed exactly once,
+  // in the order prefill()/decode() processes batch.sequences (i.e.
+  // per-request-in-batch-order, not per-batch), letting a test target
+  // one specific sequence within a mixed batch.
+  std::deque<BackendError> pending_prefill_errors_;
+  std::deque<BackendError> pending_decode_errors_;
 };
 
 } // namespace tokamak

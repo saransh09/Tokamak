@@ -1,7 +1,9 @@
 #pragma once
 
 #include <cstddef>
+#include <cstdint>
 #include <string>
+#include <vector>
 
 #include "tokamak/common/clock.h"
 #include "tokamak/request/state.h"
@@ -23,6 +25,10 @@ public:
   Request(RequestId id, const Clock &clock, Duration deadline_from_now,
           std::size_t max_output_token, int priority = 0);
 
+  Request(RequestId id, const Clock &clock, Duration deadline_from_now,
+          std::size_t max_output_token,
+          std::vector<std::uint32_t> prompt_token_ids, int priority = 0);
+
   const RequestId &id() const { return id_; }
 
   RequestLifecycle &lifecycle() { return lifecycle_; }
@@ -37,6 +43,10 @@ public:
   std::size_t max_output_tokens() const { return max_output_tokens_; }
   std::size_t output_tokens_emitted() const { return output_tokens_emitted_; }
 
+  const std::vector<std::uint32_t> &prompt_token_ids() const {
+    return prompt_token_ids_;
+  }
+
   // Records that one output token has been produces. Must only be called
   // while the request is in the Decoding state (enforced transitively via
   // RequestLifecycle::record_first_token()). Panics if called after
@@ -50,6 +60,7 @@ private:
   TimePoint deadline_at_;
   std::size_t max_output_tokens_;
   std::size_t output_tokens_emitted_ = 0;
+  std::vector<std::uint32_t> prompt_token_ids_;
   int priority_;
 };
 } // namespace tokamak

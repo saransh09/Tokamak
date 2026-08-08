@@ -4,6 +4,7 @@ add_executable(tokamak_unit_tests
     request_state_test.cpp
     request_test.cpp
     mock_backend_test.cpp
+    fifo_scheduler_test.cpp
 )
 
 target_link_libraries(tokamak_unit_tests
@@ -12,6 +13,7 @@ target_link_libraries(tokamak_unit_tests
         tokamak_common
         tokamak_request
         tokamak_backend
+        tokamak_scheduler
         Catch2::Catch2WithMain
 )
 

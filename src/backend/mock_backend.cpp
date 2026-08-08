@@ -30,6 +30,13 @@ PrefillResult MockBackend::prefill(const PrefillBatch &batch) {
   for (const auto &request : batch.sequences) {
     clock_.advance(per_token_prefill_cost_ * request.prompt.token_ids.size());
 
+    if (!pending_prefill_errors_.empty()) {
+      BackendError error = std::move(pending_prefill_errors_.front());
+      pending_prefill_errors_.pop_front();
+      result.outcomes.push_back(std::unexpected(std::move(error)));
+      continue;
+    }
+
     SequenceHandle handle(next_sequence_id_++);
     sequences_.emplace(handle.id(), SequenceState{});
 
@@ -45,6 +52,14 @@ DecodeResult MockBackend::decode(const DecodeBatch &batch) {
   result.outcomes.reserve(batch.sequences.size());
 
   for (const auto &request : batch.sequences) {
+
+    if (!pending_decode_errors_.empty()) {
+      BackendError error = std::move(pending_decode_errors_.front());
+      pending_decode_errors_.pop_front();
+      result.outcomes.push_back(std::unexpected(std::move(error)));
+      continue;
+    }
+
     auto it = sequences_.find(request.handle.id());
     if (it == sequences_.end()) {
       panic("decode() called with unknown or already-released SequenceHandle");
@@ -81,4 +96,13 @@ void MockBackend::configure_eos(SequenceHandle handle,
   }
   it->second.finished_after_tokens = after_tokens;
 }
+
+void MockBackend::fail_next_prefill(BackendError error) {
+  pending_prefill_errors_.push_back(std::move(error));
+}
+
+void MockBackend::fail_next_decode(BackendError error) {
+  pending_decode_errors_.push_back(std::move(error));
+}
+
 } // namespace tokamak

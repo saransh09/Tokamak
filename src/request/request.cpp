@@ -11,12 +11,20 @@ Request::Request(RequestId id, const Clock &clock, Duration deadline_from_now,
       deadline_at_(clock.now() + deadline_from_now),
       max_output_tokens_(max_output_tokens), priority_(priority) {}
 
-void Request::emit_token() {
-    lifecycle_.record_first_token();
+Request::Request(RequestId id, const Clock &clock, Duration deadline_from_now,
+                 std::size_t max_output_tokens,
+                 std::vector<std::uint32_t> prompt_token_ids, int priority)
+    : id_(std::move(id)), lifecycle_(clock),
+      deadline_at_(clock.now() + deadline_from_now),
+      max_output_tokens_(max_output_tokens),
+      prompt_token_ids_(std::move(prompt_token_ids)), priority_(priority) {}
 
-    if (output_tokens_emitted_ >= max_output_tokens_) {
-        panic("emit_token() called after max_output_tokens already reached");
-    }
-    ++output_tokens_emitted_;
+void Request::emit_token() {
+  lifecycle_.record_first_token();
+
+  if (output_tokens_emitted_ >= max_output_tokens_) {
+    panic("emit_token() called after max_output_tokens already reached");
+  }
+  ++output_tokens_emitted_;
 }
 } // namespace tokamak
