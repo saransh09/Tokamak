@@ -35,9 +35,20 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(Catch2)
 list(APPEND CMAKE_MODULE_PATH "${catch2_SOURCE_DIR}/extras")
 
+FetchContent_Declare(
+    nlohmann_json
+    GIT_REPOSITORY https://github.com/nlohmann/json.git
+    GIT_TAG        v3.11.3
+)
+FetchContent_MakeAvailable(nlohmann_json)
+
+
 enable_testing()
 add_subdirectory(src/common)
 add_subdirectory(src/request)
 add_subdirectory(src/backend)
 add_subdirectory(src/scheduler)
+add_subdirectory(src/telemetry)
+add_subdirectory(apps/tokamak)
 add_subdirectory(tests/unit)
+add_subdirectory(tests/golden)

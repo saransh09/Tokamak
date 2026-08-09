@@ -3,6 +3,7 @@
 #include <cstdint>
 #include <optional>
 #include <string_view>
+#include <unordered_map>
 
 #include "tokamak/common/clock.h"
 
@@ -65,6 +66,12 @@ public:
   std::optional<TimePoint> first_token_at() const { return first_token_at_; }
   std::optional<TimePoint> completed_at() const { return completed_at_; }
 
+  // Returns the timestamp `state` was entered, or std::nullopt if this
+  // request never visited that state on its path through the lifecycle
+  // (ADR-009). Unlike admitted_at()/first_token_at()/completed_at(), this
+  // covers every state uniformly rather than special-casing a few.
+  std::optional<TimePoint> entered_at(RequestState state) const;
+
 private:
   const Clock &clock_;
   RequestState state_ = RequestState::kReceived;
@@ -73,5 +80,11 @@ private:
   std::optional<TimePoint> admitted_at_;
   std::optional<TimePoint> first_token_at_;
   std::optional<TimePoint> completed_at_;
+
+  // Per-state entry timestamps (ADR-009), populated in transition_to().
+  // At most one entry per state -- see ADR-009's Alternatives Considered
+  // for why an unordered_map is enough and a full ordered history isn't
+  // needed yet.
+  std::unordered_map<RequestState, TimePoint> state_entered_at_;
 };
 } // namespace tokamak

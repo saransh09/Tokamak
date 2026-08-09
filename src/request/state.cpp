@@ -1,7 +1,6 @@
 #include "tokamak/request/state.h"
 #include "tokamak/common/panic.h"
 
-
 namespace tokamak {
 
 std::string_view to_string(RequestState state) {
@@ -80,6 +79,7 @@ void RequestLifecycle::transition_to(RequestState to) {
 
   state_ = to;
   entered_at_ = clock_.now();
+  state_entered_at_[to] = entered_at_;
 
   switch (to) {
   case RequestState::kAdmitted:
@@ -108,6 +108,13 @@ void RequestLifecycle::record_first_token() {
   if (!first_token_at_.has_value()) {
     first_token_at_ = clock_.now();
   }
+}
+
+std::optional<TimePoint>
+RequestLifecycle::entered_at(RequestState state) const {
+  if (!state_entered_at_.contains(state))
+    return std::nullopt;
+  return state_entered_at_.at(state);
 }
 
 } // namespace tokamak

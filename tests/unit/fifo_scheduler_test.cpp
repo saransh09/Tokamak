@@ -9,6 +9,7 @@
 #include "tokamak/request/request.h"
 #include "tokamak/request/state.h"
 #include "tokamak/scheduler/fifo_scheduler.h"
+#include "tokamak/scheduler/tick_report.h"
 
 using namespace std::chrono_literals;
 using tokamak::BackendError;
@@ -19,6 +20,7 @@ using tokamak::MockBackend;
 using tokamak::Request;
 using tokamak::RequestState;
 using tokamak::SequenceHandle;
+using tokamak::TickReport;
 
 
 TEST_CASE(
@@ -292,4 +294,83 @@ TEST_CASE(
   REQUIRE(req3.lifecycle().state() == RequestState::kCompleted); // 3/3
   REQUIRE(scheduler.decoding_count() == 0);
   REQUIRE(scheduler.waiting_count() == 0);
+}
+
+TEST_CASE("tick() reports accurate prefill and decode counts on success",
+          "[fifo_scheduler]") {
+  FakeClock clock;
+  MockBackend backend(clock, 1ms, 5ms);
+  FifoScheduler scheduler(backend, clock);
+
+  scheduler.submit(std::make_unique<Request>(
+      "req-1", clock, 1000ms, /*max_output_tokens=*/5,
+      std::vector<std::uint32_t>{1, 2, 3}));
+  scheduler.submit(std::make_unique<Request>(
+      "req-2", clock, 1000ms, /*max_output_tokens=*/5,
+      std::vector<std::uint32_t>{1}));
+
+  TickReport report = scheduler.tick();
+
+  REQUIRE(report.expired_count == 0);
+  REQUIRE(report.prefill_attempted == 2);
+  REQUIRE(report.prefill_succeeded == 2);
+  REQUIRE(report.prefill_failed == 0);
+  REQUIRE(report.prefill_tokens == 4); // 3 + 1
+  REQUIRE(report.decode_attempted == 2);
+  REQUIRE(report.decode_tokens == 2); // one token attempted per sequence
+  REQUIRE(report.decode_completed == 0); // max_output_tokens(5) not yet reached
+  REQUIRE(report.decode_failed == 0);
+}
+
+TEST_CASE("tick() reports expired_count and skips prefill/decode for an "
+          "already-expired waiting request",
+          "[fifo_scheduler]") {
+  FakeClock clock;
+  MockBackend backend(clock, 1ms, 5ms);
+  FifoScheduler scheduler(backend, clock);
+
+  scheduler.submit(std::make_unique<Request>(
+      "req-1", clock, 0ms, 5, std::vector<std::uint32_t>{1}));
+  clock.advance(1ms); // now strictly past deadline_at (== 0ms)
+
+  TickReport report = scheduler.tick();
+
+  REQUIRE(report.expired_count == 1);
+  REQUIRE(report.prefill_attempted == 0); // expired before ever reaching prefill
+  REQUIRE(report.decode_attempted == 0);
+}
+
+TEST_CASE("tick() reports prefill_failed and decode_failed via injected "
+          "BackendError",
+          "[fifo_scheduler]") {
+  FakeClock clock;
+  MockBackend backend(clock, 1ms, 5ms);
+  FifoScheduler scheduler(backend, clock);
+
+  scheduler.submit(std::make_unique<Request>(
+      "req-fail", clock, 1000ms, 5, std::vector<std::uint32_t>{1}));
+  scheduler.submit(std::make_unique<Request>(
+      "req-ok", clock, 1000ms, 5, std::vector<std::uint32_t>{1}));
+
+  backend.fail_next_prefill(BackendError{
+      .category = BackendErrorCategory::kInvalidRequest,
+      .message = "synthetic prefill failure",
+  });
+
+  TickReport report1 = scheduler.tick();
+  REQUIRE(report1.prefill_attempted == 2);
+  REQUIRE(report1.prefill_succeeded == 1);
+  REQUIRE(report1.prefill_failed == 1);
+  REQUIRE(report1.decode_attempted == 1); // only "req-ok" survived to decode
+
+  backend.fail_next_decode(BackendError{
+      .category = BackendErrorCategory::kUnavailable,
+      .message = "synthetic decode failure",
+  });
+
+  TickReport report2 = scheduler.tick();
+  REQUIRE(report2.prefill_attempted == 0); // waiting_ is empty by now
+  REQUIRE(report2.decode_attempted == 1);
+  REQUIRE(report2.decode_failed == 1);
+  REQUIRE(report2.decode_completed == 0);
 }

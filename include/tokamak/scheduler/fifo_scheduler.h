@@ -4,6 +4,7 @@
 #include "tokamak/common/clock.h"
 #include "tokamak/request/request.h"
 #include "tokamak/request/state.h"
+#include "tokamak/scheduler/tick_report.h"
 #include <deque>
 #include <memory>
 #include <unordered_map>
@@ -46,22 +47,23 @@ public:
   void cancel(const RequestId &id);
 
   // Runs one scheduling iteration:
-  //   1. Expire anything already past its deadline (waiting or decoding)
-  //      before doing any backend work -- avoids wasting a prefill/decode
-  //      call on a request that's already doomed.
-  //   2. Prefill phase: prefill() everything in the waiting queue; every
-  //      success is promoted straight through to Decoding this same tick.
-  //   3. Decode phase: decode() everything now in Decoding (prior-tick +
-  //      newly-promoted) as one batch.
-  void tick();
+    //   1. Expire anything already past its deadline (waiting or decoding)
+    //      before doing any backend work -- avoids wasting a prefill/decode
+    //      call on a request that's already doomed.
+    //   2. Prefill phase: prefill() everything in the waiting queue; every
+    //      success is promoted straight through to Decoding this same tick.
+    //   3. Decode phase: decode() everything now in Decoding (prior-tick +
+    //      newly-promoted) as one batch.
+    // Returns a TickReport summarizing what this call actually did (ADR-008).
+  TickReport tick();
 
   std::size_t waiting_count() const { return waiting_.size(); }
   std::size_t decoding_count() const { return decoding_.size(); }
 
 private:
-  void expire_deadlines();
-  void prefill_phase();
-  void decode_phase();
+  TickReport expire_deadlines();
+  TickReport prefill_phase();
+  TickReport decode_phase();
 
   // Shared retirement path: transitions `request` to `terminal_state`,
   // releases its backend handle if one exists (ADR007: unconditional,

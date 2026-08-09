@@ -5,6 +5,9 @@ add_executable(tokamak_unit_tests
     request_test.cpp
     mock_backend_test.cpp
     fifo_scheduler_test.cpp
+    trace_event_test.cpp
+    workload_test.cpp
+    analysis_test.cpp
 )
 
 target_link_libraries(tokamak_unit_tests
@@ -14,7 +17,10 @@ target_link_libraries(tokamak_unit_tests
         tokamak_request
         tokamak_backend
         tokamak_scheduler
+        tokamak_telemetry
+        tokamak_app
         Catch2::Catch2WithMain
+        nlohmann_json::nlohmann_json
 )
 
 include(Catch)

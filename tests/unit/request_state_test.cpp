@@ -127,6 +127,66 @@ TEST_CASE("RequestLifecycle happy path records TTFT/E2E milestones", "[request_s
     REQUIRE(e2e == 96ms);
 }
 
+TEST_CASE("entered_at(state) returns per-state timestamps across a full happy path",
+          "[request_state]") {
+    tokamak::FakeClock clock;
+    tokamak::RequestLifecycle lifecycle(clock);
+
+    clock.advance(5ms);
+    lifecycle.transition_to(RequestState::kAdmitted);
+
+    clock.advance(2ms);
+    lifecycle.transition_to(RequestState::kWaitingPrefill);
+
+    clock.advance(20ms);
+    lifecycle.transition_to(RequestState::kPrefilling);
+
+    clock.advance(15ms);
+    lifecycle.transition_to(RequestState::kWaitingDecode);
+
+    clock.advance(1ms);
+    lifecycle.transition_to(RequestState::kDecoding);
+
+    clock.advance(50ms);
+    lifecycle.transition_to(RequestState::kCompleted);
+
+    REQUIRE(lifecycle.entered_at(RequestState::kAdmitted) == tokamak::TimePoint{5ms});
+    REQUIRE(lifecycle.entered_at(RequestState::kWaitingPrefill) == tokamak::TimePoint{7ms});
+    REQUIRE(lifecycle.entered_at(RequestState::kPrefilling) == tokamak::TimePoint{27ms});
+    REQUIRE(lifecycle.entered_at(RequestState::kWaitingDecode) == tokamak::TimePoint{42ms});
+    REQUIRE(lifecycle.entered_at(RequestState::kDecoding) == tokamak::TimePoint{43ms});
+    REQUIRE(lifecycle.entered_at(RequestState::kCompleted) == tokamak::TimePoint{93ms});
+
+    // Derived durations project.md Section 29 asks for.
+    auto queue_time = *lifecycle.entered_at(RequestState::kPrefilling) -
+                       *lifecycle.entered_at(RequestState::kWaitingPrefill);
+    auto prefill_time = *lifecycle.entered_at(RequestState::kWaitingDecode) -
+                         *lifecycle.entered_at(RequestState::kPrefilling);
+    auto decode_time = *lifecycle.entered_at(RequestState::kCompleted) -
+                        *lifecycle.entered_at(RequestState::kDecoding);
+    REQUIRE(queue_time == 20ms);
+    REQUIRE(prefill_time == 15ms);
+    REQUIRE(decode_time == 50ms);
+}
+
+TEST_CASE("entered_at(state) returns std::nullopt for a state never visited",
+          "[request_state]") {
+    tokamak::FakeClock clock;
+    tokamak::RequestLifecycle lifecycle(clock);
+
+    lifecycle.transition_to(RequestState::kAdmitted);
+    lifecycle.transition_to(RequestState::kWaitingPrefill);
+    lifecycle.transition_to(RequestState::kPrefilling);
+    lifecycle.transition_to(RequestState::kWaitingDecode);
+    lifecycle.transition_to(RequestState::kDecoding);
+    lifecycle.transition_to(RequestState::kCompleted);
+
+    // This request completed successfully -- it never visited kFailed.
+    REQUIRE_FALSE(lifecycle.entered_at(RequestState::kFailed).has_value());
+    REQUIRE_FALSE(lifecycle.entered_at(RequestState::kCancelled).has_value());
+    REQUIRE_FALSE(lifecycle.entered_at(RequestState::kRejected).has_value());
+}
+
 TEST_CASE("cancel() is idempotent", "[request_state]") {
     tokamak::FakeClock clock;
     tokamak::RequestLifecycle lifecycle(clock);

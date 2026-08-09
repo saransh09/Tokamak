@@ -36,7 +36,10 @@ void FifoScheduler::retire(Request &request, RequestState terminal_state) {
   }
 }
 
-void FifoScheduler::expire_deadlines() {
+TickReport FifoScheduler::expire_deadlines() {
+  TickReport report;
+  report.timestamp = clock_.now();
+
   std::vector<Request *> expired_waiting;
   std::vector<Request *> expired_decoding;
 
@@ -59,9 +62,15 @@ void FifoScheduler::expire_deadlines() {
     // kDecoding -> kFailed is a direct legal edge.
     retire(*req, RequestState::kFailed);
   }
+
+  report.expired_count = expired_waiting.size() + expired_decoding.size();
+  return report;
 }
 
-void FifoScheduler::prefill_phase() {
+TickReport FifoScheduler::prefill_phase() {
+  TickReport report;
+  report.timestamp = clock_.now();
+
   std::vector<Request *> pending(waiting_.begin(), waiting_.end());
 
   PrefillBatch batch;
@@ -69,7 +78,9 @@ void FifoScheduler::prefill_phase() {
   for (Request *req : pending) {
     batch.sequences.push_back(
         PrefillRequest{TokenizedPrompt{req->prompt_token_ids()}});
+    report.prefill_tokens += req->prompt_token_ids().size();
   }
+  report.prefill_attempted = pending.size();
 
   PrefillResult results = backend_.prefill(batch);
 
@@ -84,21 +95,28 @@ void FifoScheduler::prefill_phase() {
       req->lifecycle().transition_to(RequestState::kDecoding);
       std::erase(waiting_, req);
       decoding_.push_back(req);
+      ++report.prefill_succeeded;
     } else {
       req->lifecycle().transition_to(RequestState::kPrefilling);
       retire(*req, RequestState::kFailed);
+      ++report.prefill_failed;
     }
   }
+  return report;
 }
 
-void FifoScheduler::decode_phase() {
+TickReport FifoScheduler::decode_phase() {
+  TickReport report;
+  report.timestamp = clock_.now();
   std::vector<Request *> pending(decoding_.begin(), decoding_.end());
 
   DecodeBatch batch;
   batch.sequences.reserve(pending.size());
   for (Request *req : pending) {
     batch.sequences.push_back(DecodeRequest{handles_.at(req->id())});
+    report.decode_tokens += 1;
   }
+  report.decode_attempted = pending.size();
 
   DecodeResult results = backend_.decode(batch);
 
@@ -115,17 +133,33 @@ void FifoScheduler::decode_phase() {
 
       if (eos || exhausted) {
         retire(*req, RequestState::kCompleted);
+        ++report.decode_completed;
       }
     } else {
       retire(*req, RequestState::kFailed);
+      ++report.decode_failed;
     }
   }
+  return report;
 }
 
-void FifoScheduler::tick() {
-  expire_deadlines();
-  prefill_phase();
-  decode_phase();
+TickReport FifoScheduler::tick() {
+  TickReport expire_report = expire_deadlines();
+  TickReport prefill_report = prefill_phase();
+  TickReport decode_report = decode_phase();
+
+  TickReport merged;
+  merged.timestamp = clock_.now();
+  merged.expired_count = expire_report.expired_count;
+  merged.prefill_attempted = prefill_report.prefill_attempted;
+  merged.prefill_succeeded = prefill_report.prefill_succeeded;
+  merged.prefill_failed = prefill_report.prefill_failed;
+  merged.prefill_tokens = prefill_report.prefill_tokens;
+  merged.decode_attempted = decode_report.decode_attempted;
+  merged.decode_completed = decode_report.decode_completed;
+  merged.decode_failed = decode_report.decode_failed;
+  merged.decode_tokens = decode_report.decode_tokens;
+  return merged;
 }
 
 void FifoScheduler::cancel(const RequestId &id) {
