@@ -47,12 +47,11 @@ public:
     return prompt_token_ids_;
   }
 
-  // Records that one output token has been produces. Must only be called
-  // while the request is in the Decoding state (enforced transitively via
-  // RequestLifecycle::record_first_token()). Panics if called after
-  // max_output_tokens have already been emitted
-  // the completed output never exceeds max_tokens
-  void emit_token();
+  void emit_token(std::uint32_t token_id);
+
+  const std::vector<std::uint32_t> &output_token_ids() const {
+      return output_token_ids_;
+  }
 
 private:
   RequestId id_;
@@ -62,5 +61,6 @@ private:
   std::size_t output_tokens_emitted_ = 0;
   std::vector<std::uint32_t> prompt_token_ids_;
   int priority_;
+  std::vector<std::uint32_t> output_token_ids_;
 };
 } // namespace tokamak

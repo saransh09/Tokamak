@@ -52,20 +52,23 @@ TEST_CASE("emit_token increments the counter and records first-token time",
   request.lifecycle().transition_to(RequestState::kDecoding);
 
   clock.advance(7ms);
-  request.emit_token();
+  request.emit_token(100);
   REQUIRE(request.output_tokens_emitted() == 1);
   REQUIRE(request.lifecycle().first_token_at() == tokamak::TimePoint{7ms});
 
   clock.advance(5ms);
-  request.emit_token();
+  request.emit_token(200);
   REQUIRE(request.output_tokens_emitted() == 2);
   // first_token_at must not move on the second call.
   REQUIRE(request.lifecycle().first_token_at() == tokamak::TimePoint{7ms});
 
   clock.advance(5ms);
-  request.emit_token();
+  request.emit_token(300);
   REQUIRE(request.output_tokens_emitted() == 3);
   REQUIRE(request.output_tokens_emitted() == request.max_output_tokens());
+
+  REQUIRE(request.output_token_ids() ==
+          std::vector<std::uint32_t>{100, 200, 300});
 }
 
 TEST_CASE("Request stores prompt_token_ids when constructed with them",

@@ -1,5 +1,6 @@
 add_library(tokamak_http
   token_channel.cpp
+  engine.cpp
 )
 
 target_include_directories(tokamak_http
@@ -10,6 +11,9 @@ target_include_directories(tokamak_http
 target_link_libraries(tokamak_http
   PUBLIC
     tokamak_common
+    tokamak_request
+    tokamak_scheduler
+    tokamak_backend
   PRIVATE
     tokamak_warnings
 )

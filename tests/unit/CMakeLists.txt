@@ -9,6 +9,7 @@ add_executable(tokamak_unit_tests
     workload_test.cpp
     analysis_test.cpp
     token_channel_test.cpp
+    engine_test.cpp
 )
 
 target_link_libraries(tokamak_unit_tests

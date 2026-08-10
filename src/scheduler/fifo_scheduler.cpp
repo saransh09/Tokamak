@@ -125,7 +125,7 @@ TickReport FifoScheduler::decode_phase() {
     const auto &outcome = results.outcomes[i];
 
     if (outcome.has_value()) {
-      req->emit_token();
+      req->emit_token(outcome.value().token_id);
 
       const bool eos = outcome.value().finished;
       const bool exhausted =
