@@ -8,6 +8,7 @@ add_executable(tokamak_unit_tests
     trace_event_test.cpp
     workload_test.cpp
     analysis_test.cpp
+    token_channel_test.cpp
 )
 
 target_link_libraries(tokamak_unit_tests
@@ -19,6 +20,7 @@ target_link_libraries(tokamak_unit_tests
         tokamak_scheduler
         tokamak_telemetry
         tokamak_app
+        tokamak_http
         Catch2::Catch2WithMain
         nlohmann_json::nlohmann_json
 )

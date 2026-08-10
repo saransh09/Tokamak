@@ -42,6 +42,13 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(nlohmann_json)
 
+FetchContent_Declare(Boost
+    GIT_REPOSITORY https://github.com/boostorg/boost.git
+    GIT_TAG        boost-1.86.0
+    GIT_SHALLOW    TRUE
+)
+set(BOOST_INCLUDE_LIBRARIES asio beast)
+FetchContent_MakeAvailable(Boost)
 
 enable_testing()
 add_subdirectory(src/common)
@@ -49,6 +56,7 @@ add_subdirectory(src/request)
 add_subdirectory(src/backend)
 add_subdirectory(src/scheduler)
 add_subdirectory(src/telemetry)
+add_subdirectory(src/http)
 add_subdirectory(apps/tokamak)
 add_subdirectory(tests/unit)
 add_subdirectory(tests/golden)
