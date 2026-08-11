@@ -46,6 +46,7 @@ FetchContent_Declare(Boost
     GIT_REPOSITORY https://github.com/boostorg/boost.git
     GIT_TAG        boost-1.86.0
     GIT_SHALLOW    TRUE
+    SYSTEM
 )
 set(BOOST_INCLUDE_LIBRARIES asio beast)
 FetchContent_MakeAvailable(Boost)

@@ -50,7 +50,7 @@ public:
   void emit_token(std::uint32_t token_id);
 
   const std::vector<std::uint32_t> &output_token_ids() const {
-      return output_token_ids_;
+    return output_token_ids_;
   }
 
 private:

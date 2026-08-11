@@ -10,6 +10,7 @@ add_executable(tokamak_unit_tests
     analysis_test.cpp
     token_channel_test.cpp
     engine_test.cpp
+    server_test.cpp
 )
 
 target_link_libraries(tokamak_unit_tests

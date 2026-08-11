@@ -1,6 +1,7 @@
 add_library(tokamak_http
   token_channel.cpp
   engine.cpp
+  server.cpp
 )
 
 target_include_directories(tokamak_http
@@ -14,6 +15,8 @@ target_link_libraries(tokamak_http
     tokamak_request
     tokamak_scheduler
     tokamak_backend
+    Boost::asio
+    Boost::beast
   PRIVATE
     tokamak_warnings
 )
